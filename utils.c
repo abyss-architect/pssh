@@ -34,4 +34,6 @@ int release_id(IDSpace_t *id_space, unsigned int id)
 		return -1;
 
 	id_space->ids[id] = id;
+
+	return 0;
 }
