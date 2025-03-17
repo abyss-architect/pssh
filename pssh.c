@@ -9,6 +9,7 @@
 
 #include "builtin.h"
 #include "parse.h"
+#include "jobs.h"
 
 /*******************************************
  * Set to 1 to view the command line parse *
@@ -18,6 +19,8 @@
 
 #define WRITE_SIDE 1
 #define READ_SIDE 0
+
+JobSystem job_system;
 
 void print_banner()
 {
