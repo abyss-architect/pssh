@@ -19,10 +19,6 @@
 #define WRITE_SIDE 1
 #define READ_SIDE 0
 
-typedef enum {
-
-} JobStatus;
-
 void print_banner()
 {
 	printf ("                    ________   \n");
