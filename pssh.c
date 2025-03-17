@@ -19,14 +19,18 @@
 #define WRITE_SIDE 1
 #define READ_SIDE 0
 
+typedef enum {
+
+} JobStatus;
+
 void print_banner()
 {
-    printf ("                    ________   \n");
-    printf ("_________________________  /_  \n");
-    printf ("___  __ \\_  ___/_  ___/_  __ \\ \n");
-    printf ("__  /_/ /(__  )_(__  )_  / / / \n");
-    printf ("_  .___//____/ /____/ /_/ /_/  \n");
-    printf ("/_/ Type 'exit' or ctrl+c to quit\n\n");
+	printf ("                    ________   \n");
+	printf ("_________________________  /_  \n");
+	printf ("___  __ \\_  ___/_  ___/_  __ \\ \n");
+	printf ("__  /_/ /(__  )_(__  )_  / / / \n");
+	printf ("_  .___//____/ /____/ /_/ /_/  \n");
+	printf ("/_/ Type 'exit' or ctrl+c to quit\n\n");
 }
 
 /* **returns** a string used to build the prompt
@@ -49,7 +53,7 @@ static char *build_prompt()
 	strcpy(command_line, cwd);
 	strcat(command_line, prompt);
 	
-    return command_line;
+	return command_line;
 }
 
 /* return true if command is found, either:
@@ -58,36 +62,36 @@ static char *build_prompt()
  * false is returned otherwise */
 static int command_found(const char *cmd)
 {
-    char *dir;
-    char *tmp;
-    char *PATH;
-    char *state;
-    char probe[PATH_MAX];
+	char *dir;
+	char *tmp;
+	char *PATH;
+	char *state;
+	char probe[PATH_MAX];
 
-    int ret = 0;
+	int ret = 0;
 
-    if (access(cmd, X_OK) == 0)
-        return 1;
+	if (access(cmd, X_OK) == 0)
+		return 1;
 
-    PATH = strdup(getenv("PATH"));
+	PATH = strdup(getenv("PATH"));
 
-    for (tmp=PATH; ; tmp=NULL) {
-        dir = strtok_r(tmp, ":", &state);
-        if (!dir)
-            break;
+	for (tmp=PATH; ; tmp=NULL) {
+		dir = strtok_r(tmp, ":", &state);
+		if (!dir)
+			break;
 
-        strncpy(probe, dir, PATH_MAX-1);
-        strncat(probe, "/", PATH_MAX-1);
-        strncat(probe, cmd, PATH_MAX-1);
+		strncpy(probe, dir, PATH_MAX-1);
+		strncat(probe, "/", PATH_MAX-1);
+		strncat(probe, cmd, PATH_MAX-1);
 
-        if (access(probe, X_OK) == 0) {
-            ret = 1;
-            break;
-        }
-    }
+		if (access(probe, X_OK) == 0) {
+			ret = 1;
+			break;
+		}
+	}
 
-    free(PATH);
-    return ret;
+	free(PATH);
+	return ret;
 }
 
 pid_t execute_task(Task T)
@@ -164,7 +168,7 @@ void _execute_task(Task T)
  * the job done! */
 void execute_tasks(Parse *P)
 {
-    unsigned int t;
+	unsigned int t;
 	int orig_fd[2];
 	int fd[2];
 
@@ -181,7 +185,7 @@ void execute_tasks(Parse *P)
 		return;
 	}
 
-    for (t = 0; t < P->ntasks; t++) {
+	for (t = 0; t < P->ntasks; t++) {
 		// If this is the first task and there is an infile, set up the file descriptor table
 		if (t == 0 && P->infile) {
 
@@ -252,7 +256,7 @@ void execute_tasks(Parse *P)
 		} else {
 			_execute_task(P->tasks[t]);
 		}
-    }
+	}
 
 	// Reset the shell file descriptors back to their originals
 	if (swap_fd(STDIN_FILENO, orig_fd[READ_SIDE]) == -1) {
@@ -272,36 +276,36 @@ void execute_tasks(Parse *P)
 int main(int argc, char **argv)
 {
 	char *prompt;
-    char *cmdline;
-    Parse *P;
+	char *cmdline;
+	Parse *P;
 
-    print_banner();
+	print_banner();
 
-    while (1) {
-        /* do NOT replace readline() with scanf() or anything else! */
+	while (1) {
+		/* do NOT replace readline() with scanf() or anything else! */
 		prompt = build_prompt();
-        cmdline = readline(prompt);
-        if (!cmdline)       /* EOF (ex: ctrl-d) */
-            exit(EXIT_SUCCESS);
+		cmdline = readline(prompt);
+		if (!cmdline)	   /* EOF (ex: ctrl-d) */
+			exit(EXIT_SUCCESS);
 
-        P = parse_cmdline(cmdline);
-        if (!P)
-            goto next;
+		P = parse_cmdline(cmdline);
+		if (!P)
+			goto next;
 
-        if (P->invalid_syntax) {
-            printf("pssh: invalid syntax\n");
-            goto next;
-        }
+		if (P->invalid_syntax) {
+			printf("pssh: invalid syntax\n");
+			goto next;
+		}
 
 #if DEBUG_PARSE
-        parse_debug(P);
+		parse_debug(P);
 #endif
 
-        execute_tasks(P);
+		execute_tasks(P);
 
-    next:
-        parse_destroy(&P);
+	next:
+		parse_destroy(&P);
 		free(prompt);
-        free(cmdline);
-    }
+		free(cmdline);
+	}
 }
