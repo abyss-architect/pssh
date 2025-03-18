@@ -71,6 +71,52 @@ int remove_job(Job *job)
 	return 0;
 }
 
+int set_fg_pgrp(pid_t pgrp)
+{
+	void (*sav)(int sig);
+
+	if (pgrp == 0)
+		pgrp = getpgrp();
+
+	if (!isatty(STDERR_FILENO)) {
+		perror("jobs.c: cannot set fg pgrp since STDERR_FILENO is not a tty\n");
+		return -1;
+	}
+
+	sav = signal(SIGTTOU, SIG_IGN);
+	tcsetpgrp(STDERR_FILENO, pgrp);
+	signal(SIGTTOU, sav);
+
+	return 0;
+}
+
+void put_job_fg(Job *job)
+{
+	set_fg_pgrp(job->pgid);
+	job->status = FG;
+	job_system.fg_job = job;
+}
+
+int get_job_by_pid(Job **job, pid_t pid)
+{
+	unsigned int i, j;
+	Job *curr_job;
+	for (i = 0; i < job_system.njobs; i++) {
+		curr_job = job_system.jobs[i];
+		if (curr_job == NULL)
+			continue;
+
+		for (j = 0; j < curr_job.npids; j++) {
+			if (curr_job.pids[j] == pid) {
+				*job = curr_job;
+				return 0;
+			}
+		}
+	}
+
+	return -1; /* Could not find a job containing pid */
+}
+
 char *job_status_to_str(JobStatus status)
 {
 	if (status == STOPPED)

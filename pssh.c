@@ -109,7 +109,7 @@ pid_t execute_task(Task T, pid_t pgid)
 	return pid;
 }
 
-void wait_for_children(int ntasks)
+void wait_for_children(pid_t *pids, unsigned npids)
 {
 	unsigned int t;
 
@@ -117,8 +117,8 @@ void wait_for_children(int ntasks)
 	printf("Waiting for children (%d)...\n", ntasks);
 #endif
 
-	for (t = 0; t < ntasks; t++) {
-		wait(NULL);
+	for (t = 0; t < npids; t++) {
+		waitpid(pids[t], NULL, 0);
 	}
 
 #if DEBUG_PARSE
@@ -277,10 +277,10 @@ void execute_tasks(Parse *P)
 
 	job->pgid = job->pids[0];
 
-	if (job->status == FG)
-		tcsetpgrp(STDOUT_FILENO, job->pgid);
-
-	wait_for_children(P->ntasks);
+	if (job->status == FG) {
+		put_job_fg(job);
+		wait_for_children(P->ntasks);
+	}
 
 	print_job(job);
 	remove_job(job);
