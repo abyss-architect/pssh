@@ -50,7 +50,7 @@ void print_job_system()
 	Job job;
 	for (i = 0; i < MAX_JOBS; i++) {
 		job = job_system.jobs[i];
-		printf("+-----------+");
+		printf("+---------+\n");
 		printf("name   : %s\n", job.name);
 		printf("id     : %d\n", job.id);
 
@@ -60,6 +60,6 @@ void print_job_system()
 		for (j = 0; j < job.npids; j++)
 			printf("%d  ", job.pids[j]);
 
-		printf("\n");
+		printf("+---------+\n");
 	}
 }
