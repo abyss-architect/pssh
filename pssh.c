@@ -283,7 +283,6 @@ void execute_tasks(Parse *P)
 	job->pgid = job->pids[0];
 
 	if (job->status == FG) {
-		print_job(job);
 		put_job_fg(job);
 		wait_for_children(job);
 	}
@@ -294,8 +293,6 @@ void execute_tasks(Parse *P)
 			printf(" %d", job->pids[t]);
 
 		printf("\n");
-
-		print_job(job);
 	}
 
 }
