@@ -17,6 +17,8 @@ typedef struct {
 
     int background;      /* run process in background? */
     int invalid_syntax;  /* parse failed */
+
+	char *cmd;
 } Parse;
 
 

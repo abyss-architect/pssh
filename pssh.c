@@ -109,21 +109,26 @@ pid_t execute_task(Task T, pid_t pgid)
 	return pid;
 }
 
-void wait_for_children(pid_t *pids, unsigned npids)
+void wait_for_children(Job *job)
 {
 	unsigned int t;
 
 #if DEBUG_PARSE
-	printf("Waiting for children (%d)...\n", ntasks);
+	printf("Waiting for children (%d)...\n", job->npids);
 #endif
 
-	for (t = 0; t < npids; t++) {
-		waitpid(pids[t], NULL, 0);
+	for (t = 0; t < job->npids; t++) {
+		waitpid(job->pids[t], NULL, 0);
+		job->ncomplete++;
 	}
 
+	remove_job(job);
+
 #if DEBUG_PARSE
-	printf("Done waiting (%d)...\n", ntasks);
+	printf("Done waiting (%d)...\n", job->npids);
 #endif
+
+	set_fg_pgrp(0); /* Take the foreground back */
 }
 
 int swap_fd(int target, int source)
@@ -188,7 +193,7 @@ void execute_tasks(Parse *P)
 		return;
 	}
 
-	add_job(&job, P->ntasks);
+	add_job(&job, P);
 	job->status = P->background ? BG : FG;
 
 	for (t = 0; t < P->ntasks; t++) {
@@ -278,12 +283,21 @@ void execute_tasks(Parse *P)
 	job->pgid = job->pids[0];
 
 	if (job->status == FG) {
+		print_job(job);
 		put_job_fg(job);
-		wait_for_children(P->ntasks);
+		wait_for_children(job);
+	}
+	if (job->status == BG) {
+		printf("[%d]", job->id);
+
+		for (t = 0; t < job->npids; t++)
+			printf(" %d", job->pids[t]);
+
+		printf("\n");
+
+		print_job(job);
 	}
 
-	print_job(job);
-	remove_job(job);
 }
 
 

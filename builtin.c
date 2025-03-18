@@ -6,10 +6,12 @@
 
 #include "builtin.h"
 #include "parse.h"
+#include "jobs.h"
 
 static char *builtin[] = {
     "exit",   /* exits the shell */
     "which",  /* displays full path to command */
+	"jobs",
     NULL
 };
 
@@ -73,12 +75,27 @@ void which(Task T) {
 	free(_path);
 }
 
+void jobs()
+{
+	unsigned int i;
+	Job *job;
+	for (i = 0; i < MAX_JOBS; i++) {
+		job = job_system.jobs[i];
+		if (job == NULL)
+			continue;
+
+		printf("[%d] + %s\t%s\n", job->id, job_status_to_str(job->status), job->name);
+	}
+}
+
 void builtin_execute(Task T)
 {
     if (!strcmp(T.cmd, "exit")) {
         exit (EXIT_SUCCESS);
     } else if (!strcmp(T.cmd, "which")) {
 		which(T);
+    } else if (!strcmp(T.cmd, "jobs")) {
+		jobs();
 	} else {
         printf("pssh: builtin command: %s (not implemented!)\n", T.cmd);
     }

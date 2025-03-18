@@ -359,6 +359,8 @@ static Parse *parse_new()
 
 static void parse_init(Parse *P, char *cmdline)
 {
+	P->cmd = malloc(strlen(cmdline));
+	strcpy(P->cmd, cmdline);
     P->background = is_background(cmdline);
 
     if (count_char('&', cmdline)) {

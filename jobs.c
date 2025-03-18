@@ -2,9 +2,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "jobs.h"
 #include "utils.h"
+#include "parse.h"
 
 JobSystem_t job_system;
 
@@ -17,12 +19,13 @@ void init_job_system()
 	job_system.njobs = 0;
 }
 
-Job *create_job(unsigned int npids)
+Job *create_job(Parse *parse)
 {
 	Job *job = (Job *) malloc(sizeof(Job));
-	job->name = (char *) malloc(sizeof(char) * MAX_NAME_SIZE);
-	job->pids = (pid_t *) calloc(npids, sizeof(pid_t));
-	job->npids = npids;
+	job->name = (char *) malloc(sizeof(char) * strlen(parse->cmd));
+	strcpy(job->name, parse->cmd);
+	job->pids = (pid_t *) calloc(parse->ntasks, sizeof(pid_t));
+	job->npids = parse->ntasks;
 
 	return job;
 }
@@ -34,7 +37,7 @@ void destroy_job(Job *job)
 	free(job);
 }
 
-int add_job(Job **job, unsigned int npids)
+int add_job(Job **job, Parse *parse)
 {
 	unsigned int id;
 	if (obtain_id(&id) == -1) {
@@ -42,10 +45,9 @@ int add_job(Job **job, unsigned int npids)
 		return -1;
 	}
 
-	Job *new_job = create_job(npids);
+	Job *new_job = create_job(parse);
 
 	new_job->id = id;
-	sprintf(new_job->name, "%%%d", id);
 
 	job_system.jobs[id] = new_job;
 	job_system.njobs++;
@@ -106,8 +108,8 @@ int get_job_by_pid(Job **job, pid_t pid)
 		if (curr_job == NULL)
 			continue;
 
-		for (j = 0; j < curr_job.npids; j++) {
-			if (curr_job.pids[j] == pid) {
+		for (j = 0; j < curr_job->npids; j++) {
+			if (curr_job->pids[j] == pid) {
 				*job = curr_job;
 				return 0;
 			}
@@ -120,13 +122,11 @@ int get_job_by_pid(Job **job, pid_t pid)
 char *job_status_to_str(JobStatus status)
 {
 	if (status == STOPPED)
-		return "S ";
+		return "suspended";
 	if (status == TERM)
-		return "T ";
-	if (status == BG)
-		return "BG";
+		return "done";
 
-	return "FG";
+	return "running";
 }
 
 void print_job(Job *job)
