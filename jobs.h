@@ -2,6 +2,7 @@
 #define JOBS_H
 
 #include <unistd.h>
+#include "utils.h"
 
 #define MAX_JOBS 100
 
@@ -14,6 +15,7 @@ typedef enum {
 
 typedef struct {
 	char* name;
+	unsigned int id;
 	pid_t* pids;
 	unsigned int npids;
 	pid_t pgid;
@@ -21,22 +23,18 @@ typedef struct {
 } Job;
 
 typedef struct {
-	Job job;
-	JobNode* next;
-} JobNode;
-
-typedef struct {
 	Job jobs[MAX_JOBS];
-	unsigned int free_job_i[MAX_JOBS];
 	unsigned int njobs;
-} JobSystem;
+} JobSystem_t;
 
-void init_job_system(JobSystem*);
-int add_job(JobSystem*, Job*);
-int remove_job(JobSystem*, Job*);
+extern JobSystem_t job_system;
+
+void init_job_system();
+int add_job(Job*);
+int remove_job(Job*);
 int kill_job(Job*);
 
-/* Helpers */
-unsigned int get_next_job_n(JobSystem*);
+/* Debug */
+void print_job_system();
 
 #endif /* JOBS_H */

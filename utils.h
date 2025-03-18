@@ -8,8 +8,10 @@ typedef struct {
 	unsigned int size;
 } IDSpace_t;
 
-void init_id_space(IDSpace_t*);
-int obtain_id(IDSpace_t*, unsigned int*);
-int release_id(IDSpace_t*, unsigned int);
+extern IDSpace_t id_space;
+
+void init_id_space();
+int obtain_id(unsigned int*);
+int release_id(unsigned int);
 
 #endif /* UTILS_H */
