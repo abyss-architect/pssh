@@ -31,9 +31,9 @@ typedef struct {
 extern JobSystem_t job_system;
 
 void init_job_system();
-Job *create_job();
+Job *create_job(unsigned int);
 void destroy_job(Job*);
-int add_job(Job**);
+int add_job(Job**, unsigned int);
 int remove_job(Job*);
 int kill_job(Job*);
 

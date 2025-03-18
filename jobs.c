@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "jobs.h"
 #include "utils.h"
@@ -16,10 +17,12 @@ void init_job_system()
 	job_system.njobs = 0;
 }
 
-Job *create_job()
+Job *create_job(unsigned int npids)
 {
-	Job *job = malloc(sizeof(Job));
-	job->name = malloc(sizeof(char) * MAX_NAME_SIZE);
+	Job *job = (Job *) malloc(sizeof(Job));
+	job->name = (char *) malloc(sizeof(char) * MAX_NAME_SIZE);
+	job->pids = (pid_t *) calloc(npids, sizeof(pid_t));
+	job->npids = npids;
 
 	return job;
 }
@@ -27,10 +30,11 @@ Job *create_job()
 void destroy_job(Job *job)
 {
 	free(job->name);
+	free(job->pids);
 	free(job);
 }
 
-int add_job(Job **job)
+int add_job(Job **job, unsigned int npids)
 {
 	unsigned int id;
 	if (obtain_id(&id) == -1) {
@@ -38,7 +42,7 @@ int add_job(Job **job)
 		return -1;
 	}
 
-	Job *new_job = create_job();
+	Job *new_job = create_job(npids);
 
 	new_job->id = id;
 	sprintf(new_job->name, "%%%d", id);
@@ -53,22 +57,30 @@ int add_job(Job **job)
 
 int remove_job(Job *job)
 {
-	printf("ID: %d\n", job->id);
 	unsigned int id = job->id;
-	printf("RELEASING\n");
 	if (release_id(id) == -1) {
 		perror("jobs.c: cannot release id\n");
 		return -1;
 	}
 
-	printf("NULLING\n");
 	job_system.jobs[id] = NULL;
 	job_system.njobs--;
 
-	printf("DESTROYING\n");
 	destroy_job(job);
 
 	return 0;
+}
+
+char *job_status_to_str(JobStatus status)
+{
+	if (status == STOPPED)
+		return "S ";
+	if (status == TERM)
+		return "T ";
+	if (status == BG)
+		return "BG";
+
+	return "FG";
 }
 
 void print_job(Job *job)
@@ -77,18 +89,19 @@ void print_job(Job *job)
 	if (job == NULL)
 		return;
 
-	printf("+------------+\n");
-	printf("| Print  Job |\n");
-	printf("+------------+\n");
-	printf("|name    : %s|\n", job->name);
-	printf("|id      : %d |\n", job->id);
+	printf("+---------------+\n");
+	printf("|  Print   Job  |\n");
+	printf("+---------------+\n");
+	printf("|name    : %s   |\n", job->name);
+	printf("|id      : %d    |\n", job->id);
+	printf("|status  : %s   |\n", job_status_to_str(job->status));
 	printf("|pgid    : %d |\n", job->pgid);
-	printf("|pids (%d):   |\n", job->npids);
+	printf("|pids (%d):      |\n", job->npids);
 
 	for (i = 0; i < job->npids; i++)
-		printf("|  %d  |\n", job->pids[i]);
+		printf("|  %d         |\n", job->pids[i]);
 
-	printf("+------------+\n");
+	printf("+---------------+\n");
 }
 
 void print_job_system()

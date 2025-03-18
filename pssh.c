@@ -20,8 +20,6 @@
 #define WRITE_SIDE 1
 #define READ_SIDE 0
 
-JobSystem job_system;
-
 void print_banner()
 {
 	printf ("                    ________   \n");
@@ -93,13 +91,15 @@ static int command_found(const char *cmd)
 	return ret;
 }
 
-pid_t execute_task(Task T)
+pid_t execute_task(Task T, pid_t pgid)
 {
 	pid_t pid;
 	if ((pid = vfork()) == -1) {
 		perror("pssh: failed to vfork\n");
 		return -1;
 	}
+
+	setpgid(pid, pgid);
 	
 	if (pid == 0) {
 		// Child process
@@ -144,13 +144,14 @@ int swap_fd(int target, int source)
 	return result;
 }
 
-void _execute_task(Task T)
+pid_t _execute_task(Task T, pid_t pgid)
 {
+	pid_t child_pid;
 	if (is_builtin(T.cmd)) {
 		builtin_execute(T);
 	}
 	else if (command_found(T.cmd)) {
-		pid_t child_pid = execute_task(T);
+		child_pid = execute_task(T, pgid);
 		
 		if (child_pid == -1) {
 			printf("pssh: found but can't exec: %s\n", T.cmd);
@@ -159,6 +160,8 @@ void _execute_task(Task T)
 	else {
 		printf("pssh: command not found: %s\n", T.cmd);
 	}
+
+	return child_pid;
 }
 
 /* Called upon receiving a successful parse.
@@ -167,6 +170,7 @@ void _execute_task(Task T)
  * the job done! */
 void execute_tasks(Parse *P)
 {
+	Job *job;
 	unsigned int t;
 	int orig_fd[2];
 	int fd[2];
@@ -183,6 +187,9 @@ void execute_tasks(Parse *P)
 		perror("pssh: failed to dup\n");
 		return;
 	}
+
+	add_job(&job, P->ntasks);
+	job->status = P->background ? BG : FG;
 
 	for (t = 0; t < P->ntasks; t++) {
 		// If this is the first task and there is an infile, set up the file descriptor table
@@ -246,14 +253,14 @@ void execute_tasks(Parse *P)
 				return;
 			}
 
-			_execute_task(P->tasks[t]);
+			job->pids[t] = _execute_task(P->tasks[t], job->pids[0]);
 			
 			if (swap_fd(STDIN_FILENO, fd[READ_SIDE]) == -1) {
 				printf("pssh: failed to swap the file descriptors\n");
 				return;
 			}
 		} else {
-			_execute_task(P->tasks[t]);
+			job->pids[t] = _execute_task(P->tasks[t], job->pids[0]);
 		}
 	}
 
@@ -268,7 +275,15 @@ void execute_tasks(Parse *P)
 		return;
 	}
 
+	job->pgid = job->pids[0];
+
+	if (job->status == FG)
+		tcsetpgrp(STDOUT_FILENO, job->pgid);
+
 	wait_for_children(P->ntasks);
+
+	print_job(job);
+	remove_job(job);
 }
 
 
@@ -277,6 +292,8 @@ int main(int argc, char **argv)
 	char *prompt;
 	char *cmdline;
 	Parse *P;
+
+	init_job_system();
 
 	print_banner();
 
